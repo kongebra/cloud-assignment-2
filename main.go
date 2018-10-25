@@ -2,17 +2,20 @@ package main
 
 import (
 	"fmt"
-	"net/http"
+	"github.com/gorilla/mux"
 	"log"
+	"net/http"
 	"os"
 )
 
 func main() {
-	http.HandleFunc("/", handler)
+	router := mux.NewRouter()
+
+	router.HandleFunc("/", handler)
 
 	fmt.Println("listening...")
 
-	err := http.ListenAndServe(GetPort(), nil)
+	err := http.ListenAndServe(GetPort(), router)
 
 	if err != nil {
 		log.Fatal("ListenAndServe: ", err)
