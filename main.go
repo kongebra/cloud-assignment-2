@@ -6,9 +6,28 @@ import (
 )
 
 func main() {
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintln(w, "Hello World")
-	})
+	http.HandleFunc("/", handler)
 
-	http.ListenAndServe(":8080", nil)
+	fmt.Println("listening...")
+
+	err := http.ListenAndServe(GetPort(), nil)
+
+	if err != nil {
+		log.Fatal("ListenAndServe: ", err)
+	}
+}
+
+func handler(w http.ResponseWriter, r *http.Request) {
+
+}
+
+func GetPort() string {
+	var port = os.Getenv("PORT")
+
+	if port == "" {
+		port = "4747"
+		fmt.Println("INFO: No PORT environment variable detected, defaulting to " + port)
+	}
+
+	return ":" + port
 }
