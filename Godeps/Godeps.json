@@ -4,9 +4,34 @@
 	"GodepVersion": "v80",
 	"Deps": [
 		{
-			"ImportPath": "github.com/gorilla/mux",
-			"Comment": "v1.6.2-9-g9e1f595",
-			"Rev": "9e1f5955c0d22b55d9e20d6faa28589f83b2faca"
+			"ImportPath": "github.com/golang/geo/r1",
+			"Rev": "635502111454809c6a2c3e92d5ef0454706164f5"
+		},
+		{
+			"ImportPath": "github.com/golang/geo/r2",
+			"Rev": "635502111454809c6a2c3e92d5ef0454706164f5"
+		},
+		{
+			"ImportPath": "github.com/golang/geo/r3",
+			"Rev": "635502111454809c6a2c3e92d5ef0454706164f5"
+		},
+		{
+			"ImportPath": "github.com/golang/geo/s1",
+			"Rev": "635502111454809c6a2c3e92d5ef0454706164f5"
+		},
+		{
+			"ImportPath": "github.com/golang/geo/s2",
+			"Rev": "635502111454809c6a2c3e92d5ef0454706164f5"
+		},
+		{
+			"ImportPath": "github.com/julienschmidt/httprouter",
+			"Comment": "v1.2.0-2-g26a0597",
+			"Rev": "26a05976f9bf5c3aa992cc20e8588c359418ee58"
+		},
+		{
+			"ImportPath": "github.com/marni/goigc",
+			"Comment": "v0.1.0-10-g71f274d",
+			"Rev": "71f274dd21ef320ccbb6c6271c7df7fd8a908779"
 		}
 	]
 }
