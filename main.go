@@ -5,6 +5,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 	"log"
 	"net/http"
+	"os"
 	"time"
 )
 
@@ -22,7 +23,17 @@ func main() {
 	router.GET("/paragliding/api/", APIIndex)
 
 
-	log.Fatal(http.ListenAndServe(":8088", router))
+	log.Fatal(http.ListenAndServe(GetPort(), router))
+}
+
+func GetPort() string {
+	var port = os.Getenv("PORT")
+
+	if port == "" {
+		port = "4747"
+	}
+
+	return ":" + port
 }
 
 func APIIndex(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
