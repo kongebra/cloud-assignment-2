@@ -1,40 +1,37 @@
 package main
 
 import (
-	"fmt"
-	"github.com/gorilla/mux"
+	"encoding/json"
+	"github.com/julienschmidt/httprouter"
 	"log"
 	"net/http"
-	"os"
+	"time"
 )
 
+var startTime time.Time
+
 func main() {
-	router := mux.NewRouter()
+	startTime = time.Now()
 
-	router.HandleFunc("/", handler)
+	router := httprouter.New()
 
-	fmt.Println("listening...")
+	router.GET("/paragliding/", func(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+		http.Redirect(w, r, "/paragliding/api", http.StatusMovedPermanently)
+	})
 
-	err := http.ListenAndServe(GetPort(), router)
+	router.GET("/paragliding/api/", APIIndex)
 
-	if err != nil {
-		log.Fatal("ListenAndServe: ", err)
-	}
 
-	
+	log.Fatal(http.ListenAndServe(":8088", router))
 }
 
-func handler(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "Hello World!")
+func APIIndex(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	var api = API{Info: "Service for Paragliding tracks.", Version: "v1"}
+
+	api.CalculateUptime(int(time.Since(startTime).Seconds()))
+
+	w.Header().Set("Content-Type", "application/json")
+
+	json.NewEncoder(w).Encode(api)
 }
 
-func GetPort() string {
-	var port = os.Getenv("PORT")
-
-	if port == "" {
-		port = "4747"
-		fmt.Println("INFO: No PORT environment variable detected, defaulting to " + port)
-	}
-
-	return ":" + port
-}
