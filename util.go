@@ -1,6 +1,10 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+	"time"
+)
 
 import (
 	"github.com/marni/goigc"
@@ -34,7 +38,7 @@ func Distance(lat1, lon1, lat2, lon2 float64) float64 {
 	return 2 * r * math.Asin(math.Sqrt(h))
 }
 
-func CreateFromIGCTrack(url string, t igc.Track) Track {
+func CreateTrackFromIGC(url string, t igc.Track) Track {
 	points := t.Points
 
 	lat := points[0].Lat
@@ -52,12 +56,13 @@ func CreateFromIGCTrack(url string, t igc.Track) Track {
 	}
 
 	return Track{
-		t.Date.String(),
-		t.Pilot,
-		t.GliderType,
-		t.GliderID,
-		length,
-		url,
+		HDate: t.Date.String(),
+		Pilot: t.Pilot,
+		Glider: t.GliderType,
+		GliderID: t.GliderID,
+		TrackLength: length,
+		TrackSrcUrl: url,
+		Timestamp: time.Now().Unix(),
 	}
 }
 
@@ -106,4 +111,14 @@ func ConvertSecondsToISO8601(seconds int) string {
 
 
 	return result
+}
+
+func GetPort() string {
+	var port = os.Getenv("PORT")
+
+	if port == "" {
+		port = "4747"
+	}
+
+	return ":" + port
 }
