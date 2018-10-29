@@ -268,8 +268,8 @@ func WebhookNewTrack(w http.ResponseWriter, r *http.Request) {
 		hook.MinTriggerValue.Type = 1
 	}
 
-	fmt.Printf( "webhookURL: %s\n", hook.WebhookURL.Type)
-	fmt.Printf( "minTriggerValue: %d\n\n", hook.MinTriggerValue.Type)
+	fmt.Fprintf(w, "webhookURL: %s\n", hook.WebhookURL.Type)
+	fmt.Fprintf(w, "minTriggerValue: %d\n\n", hook.MinTriggerValue.Type)
 }
 
 func WebhookNewTrackIdGET(w http.ResponseWriter, r *http.Request) {
