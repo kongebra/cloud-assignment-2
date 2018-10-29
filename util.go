@@ -38,23 +38,32 @@ func Distance(lat1, lon1, lat2, lon2 float64) float64 {
 	return 2 * r * math.Asin(math.Sqrt(h))
 }
 
+// Create Track from URL and igc.Track
 func CreateTrackFromIGC(url string, t igc.Track) Track {
+	// Get all points of the igc.Track
 	points := t.Points
 
+	// Get first latitude & longitude
 	lat := points[0].Lat
 	lng := points[0].Lng
 
+	// Declare length variable
 	var length float64
 
+	// Loop through points
 	for i, p := range points {
+		// Check that are not at the first points
 		if i != 0 {
+			// Add the distance from points to the length
 			length += Distance(float64(lat), float64(lng), float64(p.Lat), float64(p.Lng))
 
+			// Get the next latitude & longitude
 			lat = p.Lat
 			lng = p.Lng
 		}
 	}
 
+	// Returns a Track
 	return Track{
 		HDate: t.Date.String(),
 		Pilot: t.Pilot,
@@ -66,6 +75,7 @@ func CreateTrackFromIGC(url string, t igc.Track) Track {
 	}
 }
 
+// Converts seconds to ISO-8601 (duration)
 func ConvertSecondsToISO8601(seconds int) string {
 	sec := seconds % 60
 	min := seconds / 60
@@ -113,36 +123,14 @@ func ConvertSecondsToISO8601(seconds int) string {
 	return result
 }
 
+// Gets port from the environment
 func GetPort() string {
 	var port = os.Getenv("PORT")
 
+	// Check if port is blank (localhost)
 	if port == "" {
 		port = "4747"
 	}
 
 	return ":" + port
-}
-
-func abs(num int) int {
-	if num < 0 {
-		return num * -1
-	}
-
-	return num
-}
-
-func min(a, b int) int {
-	if a > b {
-		return b
-	}
-
-	return a
-}
-
-func max(a, b int) int {
-	if a > b {
-		return a
-	}
-
-	return b
 }

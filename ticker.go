@@ -5,6 +5,7 @@ import (
 	"time"
 )
 
+// Ticker struct
 type Ticker struct {
 	TLatest int64 `json:"t_latest"`
 	TStart int64 `json:"t_start"`
@@ -13,6 +14,7 @@ type Ticker struct {
 	Processing int64 `json:"processing"`
 }
 
+// Get current timestamp
 func (t *Ticker) Timestamp() {
 	t.TLatest = time.Now().Unix()
 }

@@ -5,6 +5,7 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
+// Track struct
 type Track struct {
 	Id 			bson.ObjectId `json:"-" bson:"_id,omitempty"`
 	Timestamp	int64 `json:"-" bson:"timestamp,omitempty"`
@@ -18,6 +19,7 @@ type Track struct {
 
 }
 
+// Get a specific field from the Track as a string
 func (track *Track) GetField(field string) string {
 	// Response string
 	var response string
