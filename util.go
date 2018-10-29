@@ -122,3 +122,27 @@ func GetPort() string {
 
 	return ":" + port
 }
+
+func abs(num int) int {
+	if num < 0 {
+		return num * -1
+	}
+
+	return num
+}
+
+func min(a, b int) int {
+	if a > b {
+		return b
+	}
+
+	return a
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+
+	return b
+}

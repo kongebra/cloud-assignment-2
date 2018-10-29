@@ -14,21 +14,10 @@ import (
 
 var startTime time.Time
 var trackDB TrackDB
-var webhooks Webhooks
-
-func foo() {
-	fmt.Println("foo() called!")
-}
-
-func startRoutine() {
-	for {
-		<- time.After(10 * time.Second)
-		foo()
-	}
-}
+var webhookDB WebhookDB
 
 func main() {
-	go startRoutine()
+	go startClockTicker()
 
 	trackDB = TrackDB{
 		Addrs: []string{"ds133533.mlab.com:33533"},
@@ -40,6 +29,16 @@ func main() {
 
 	trackDB.Init()
 
+	webhookDB = WebhookDB{
+		Addrs: []string{"ds133533.mlab.com:33533"},
+		Database: "assignment-2",
+		Username: "golang",
+		Password: "golang1",
+		Collection: "webhooks",
+	}
+
+	webhookDB.Init()
+
 	startTime = time.Now()
 
 	router := mux.NewRouter().StrictSlash(true)
@@ -48,6 +47,12 @@ func main() {
 	router.HandleFunc("/webhook/test", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Println("Got a request to /webhook/test")
 	}).Methods("GET")
+
+	router.HandleFunc("/paragliding/api/discord/", func(w http.ResponseWriter, r *http.Request) {
+		params := mux.Vars(r)
+
+		fmt.Println(params["code"])
+	})
 
 	router.HandleFunc("/paragliding/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/paragliding/api/", http.StatusMovedPermanently)
@@ -75,8 +80,6 @@ func main() {
 }
 
 func APIIndex(w http.ResponseWriter, r *http.Request) {
-	fmt.Println("APIIndex() called!")
-
 	var api = API{Info: "Service for Paragliding tracks.", Version: "v1"}
 
 	api.CalculateUptime(int(time.Since(startTime).Seconds()))
@@ -117,7 +120,7 @@ func TrackPOST(w http.ResponseWriter, r *http.Request) {
 			Id bson.ObjectId `json:"id"`
 		}
 
-		for _, wh := range webhooks.Hooks {
+		for _, wh := range webhookDB.GetAll() {
 			if wh.CheckTrigger() {
 				wh.SendHook()
 			}
@@ -290,7 +293,8 @@ func WebhookNewTrack(w http.ResponseWriter, r *http.Request) {
 	var id = bson.NewObjectId().Hex()
 	hook.ID = id
 
-	webhooks.Add(hook)
+	webhookDB.Insert(hook)
+	//webhooks.Add(hook)
 
 	fmt.Fprintf(w, "%s", id)
 }
@@ -298,9 +302,9 @@ func WebhookNewTrack(w http.ResponseWriter, r *http.Request) {
 func WebhookNewTrackIdGET(w http.ResponseWriter, r *http.Request) {
 	params := mux.Vars(r)
 
-	id := params["id"]
+	id := params["webhook_id"]
 
-	webhook, found := webhooks.Get(id)
+	webhook, found := webhookDB.Get(id)
 
 	if found != true {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
@@ -315,16 +319,16 @@ func WebhookNewTrackIdGET(w http.ResponseWriter, r *http.Request) {
 func WebhookNewTrackIdDELETE(w http.ResponseWriter, r *http.Request) {
 	var params = mux.Vars(r)
 
-	var id = params["id"]
+	var id = params["webhook_id"]
 
-	webhook, found := webhooks.Get(id)
+	webhook, found := webhookDB.Get(id)
 
 	if found != true {
 		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
 		return
 	}
 
-	webhooks.Remove(id)
+	webhookDB.Delete(id)
 
 	w.Header().Set("Content-Type", "application/json")
 
