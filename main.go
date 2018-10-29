@@ -14,8 +14,22 @@ import (
 
 var startTime time.Time
 var trackDB TrackDB
+var webhooks Webhooks
+
+func foo() {
+	fmt.Println("foo() called!")
+}
+
+func startRoutine() {
+	for {
+		<- time.After(10 * time.Second)
+		foo()
+	}
+}
 
 func main() {
+	go startRoutine()
+
 	trackDB = TrackDB{
 		Addrs: []string{"ds133533.mlab.com:33533"},
 		Database: "assignment-2",
@@ -30,6 +44,11 @@ func main() {
 
 	router := mux.NewRouter().StrictSlash(true)
 
+	// TODO: Only for testing triggers
+	router.HandleFunc("/webhook/test", func(w http.ResponseWriter, r *http.Request) {
+		fmt.Println("Got a request to /webhook/test")
+	}).Methods("GET")
+
 	router.HandleFunc("/paragliding/", func(w http.ResponseWriter, r *http.Request) {
 		http.Redirect(w, r, "/paragliding/api/", http.StatusMovedPermanently)
 	})
@@ -41,21 +60,23 @@ func main() {
 	router.HandleFunc("/paragliding/api/track/{id}/", SingleTrackGET).Methods("GET")
 	router.HandleFunc("/paragliding/api/track/{id}/{field}/", SingleTrackFieldGET).Methods("GET")
 
-	router.HandleFunc("/paragliding/api/ticker", GetTicker).Methods("GET")
-	router.HandleFunc("/paragliding/api/ticker/latest", GetLatestTicker).Methods("GET")
-	router.HandleFunc("/paragliding/api/ticker/{timestamp}", GetTickerFromTimestamp).Methods("GET")
+	router.HandleFunc("/paragliding/api/ticker/", GetTicker).Methods("GET")
+	router.HandleFunc("/paragliding/api/ticker/latest/", GetLatestTicker).Methods("GET")
+	router.HandleFunc("/paragliding/api/ticker/{timestamp}/", GetTickerFromTimestamp).Methods("GET")
 
-	router.HandleFunc("/paragliding/api/webhook/new_track", WebhookNewTrack).Methods("POST")
-	router.HandleFunc("/paragliding/api/webhook/new_track/{webhook_id}", WebhookNewTrackIdGET).Methods("GET")
-	router.HandleFunc("/paragliding/api/webhook/new_track/{webhook_id}", WebhookNewTrackIdDELETE).Methods("DELETE")
+	router.HandleFunc("/paragliding/api/webhook/new_track/", WebhookNewTrack).Methods("POST")
+	router.HandleFunc("/paragliding/api/webhook/new_track/{webhook_id}/", WebhookNewTrackIdGET).Methods("GET")
+	router.HandleFunc("/paragliding/api/webhook/new_track/{webhook_id}/", WebhookNewTrackIdDELETE).Methods("DELETE")
 
-	router.HandleFunc("/paragliding/admin/api/track_count", AdminTrackCount).Methods("GET")
-	router.HandleFunc("/paragliding/admin/api/tracks", AdminDeleteTracks).Methods("DELETE")
+	router.HandleFunc("/paragliding/admin/api/track_count/", AdminTrackCount).Methods("GET")
+	router.HandleFunc("/paragliding/admin/api/tracks/", AdminDeleteTracks).Methods("DELETE")
 
 	log.Fatal(http.ListenAndServe(GetPort(), router))
 }
 
 func APIIndex(w http.ResponseWriter, r *http.Request) {
+	fmt.Println("APIIndex() called!")
+
 	var api = API{Info: "Service for Paragliding tracks.", Version: "v1"}
 
 	api.CalculateUptime(int(time.Since(startTime).Seconds()))
@@ -92,22 +113,19 @@ func TrackPOST(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		/* TODO: Will it work when commented???
-		if ticker.TStart == 0 {
-			ticker.TStart = time.Now().Unix()
-		}
-
-		ticker.Timestamp()
-		*/
-
 		type JSONID struct {
 			Id bson.ObjectId `json:"id"`
+		}
+
+		for _, wh := range webhooks.Hooks {
+			if wh.CheckTrigger() {
+				wh.SendHook()
+			}
 		}
 
 		w.Header().Set("Content-Type", "application/json")
 
 		json.NewEncoder(w).Encode(JSONID{Id: id})
-
 	}
 }
 
@@ -269,16 +287,48 @@ func WebhookNewTrack(w http.ResponseWriter, r *http.Request) {
 
 	hook.CheckTriggerValue()
 
-	//fmt.Fprintf(w, "webhookURL: %s\n", hook.WebhookURL)
-	//fmt.Fprintf(w, "minTriggerValue: %d\n\n", hook.MinTriggerValue)
+	var id = bson.NewObjectId().Hex()
+	hook.ID = id
+
+	webhooks.Add(hook)
+
+	fmt.Fprintf(w, "%s", id)
 }
 
 func WebhookNewTrackIdGET(w http.ResponseWriter, r *http.Request) {
+	params := mux.Vars(r)
 
+	id := params["id"]
+
+	webhook, found := webhooks.Get(id)
+
+	if found != true {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+
+	json.NewEncoder(w).Encode(webhook)
 }
 
 func WebhookNewTrackIdDELETE(w http.ResponseWriter, r *http.Request) {
+	var params = mux.Vars(r)
 
+	var id = params["id"]
+
+	webhook, found := webhooks.Get(id)
+
+	if found != true {
+		http.Error(w, http.StatusText(http.StatusInternalServerError), http.StatusInternalServerError)
+		return
+	}
+
+	webhooks.Remove(id)
+
+	w.Header().Set("Content-Type", "application/json")
+
+	json.NewEncoder(w).Encode(webhook)
 }
 
 func AdminTrackCount(w http.ResponseWriter, r *http.Request) {
