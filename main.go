@@ -8,6 +8,7 @@ import (
 	"gopkg.in/mgo.v2/bson"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -57,7 +58,12 @@ func main() {
 	router.HandleFunc("/paragliding/api/ticker/latest", GetLatestTicker).Methods("GET")
 	router.HandleFunc("/paragliding/api/ticker/{timestamp}", GetTickerFromTimestamp).Methods("GET")
 
-	router.HandleFunc("/paragliding/api/webhook", WebhookTest)
+	router.HandleFunc("/paragliding/api/webhook/new_track", WebhookNewTrack).Methods("POST")
+	router.HandleFunc("/paragliding/api/webhook/new_track/{webhook_id}", WebhookNewTrackIdGET).Methods("GET")
+	router.HandleFunc("/paragliding/api/webhook/new_track/{webhook_id}", WebhookNewTrackIdDELETE).Methods("DELETE")
+
+	router.HandleFunc("/paragliding/admin/api/track_count", AdminTrackCount).Methods("GET")
+	router.HandleFunc("/paragliding/admin/api/tracks", AdminDeleteTracks).Methods("DELETE")
 
 	log.Fatal(http.ListenAndServe(GetPort(), router))
 }
@@ -199,9 +205,91 @@ func GetLatestTicker(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetTickerFromTimestamp(w http.ResponseWriter, r *http.Request) {
+	start := time.Now().Unix()
+
+	var params = mux.Vars(r)
+
+	var timestamp, err = strconv.ParseInt(params["timestamp"], 10, 64)
+
+	if err != nil {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
+
+	var all = trackDB.GetAll()
+	ticker.Tracks = make([]bson.ObjectId, 0)
+
+	count := 0
+
+	var result = make([]Track, 0)
+
+	for _, value := range all {
+		if count < 5 {
+			if value.Timestamp > timestamp {
+				result = append(result, value)
+				count++
+			}
+		}
+	}
+
+	ticker.TStart = result[0].Timestamp
+	ticker.TLatest = result[len(result) - 1].Timestamp
+	ticker.TStop = result[len(result) - 1].Timestamp
+
+	for _, t := range result {
+		ticker.Tracks = append(ticker.Tracks, t.Id)
+	}
+
+	end := time.Now().Unix() - start
+
+	ticker.Processing = end
+
+	w.Header().Set("Content-Type", "application/json")
+
+	json.NewEncoder(w).Encode(ticker)
+}
+
+func WebhookNewTrack(w http.ResponseWriter, r *http.Request) {
 
 }
 
-func WebhookTest(w http.ResponseWriter, r *http.Request) {
-	fmt.Fprintf(w, "%v", r.Body)
+func WebhookNewTrackIdGET(w http.ResponseWriter, r *http.Request) {
+
 }
+
+func WebhookNewTrackIdDELETE(w http.ResponseWriter, r *http.Request) {
+
+}
+
+func AdminTrackCount(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "text/plain")
+
+	count := trackDB.Count()
+
+	if count == -1 {
+		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+		return
+	}
+
+	fmt.Fprintf(w, "%d", count)
+}
+
+func AdminDeleteTracks(w http.ResponseWriter, r *http.Request) {
+	count := trackDB.Count()
+
+	if count != -1 {
+		err := trackDB.DeleteAll()
+
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+
+		w.Header().Set("Content-Type", "text/plain")
+		fmt.Fprintf(w, "Deleted documents: %d", count)
+	} else {
+		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+		return
+	}
+}
+

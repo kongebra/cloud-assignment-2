@@ -118,3 +118,13 @@ func (db *TrackDB) GetAll() []Track {
 
 	return all
 }
+
+func (db *TrackDB) DeleteAll() error {
+	session, _ := db.Dial()
+
+	defer session.Close()
+
+	_, err := session.DB(db.Database).C(db.Collection).RemoveAll(bson.M{})
+
+	return err
+}
