@@ -253,23 +253,24 @@ func GetTickerFromTimestamp(w http.ResponseWriter, r *http.Request) {
 }
 
 func WebhookNewTrack(w http.ResponseWriter, r *http.Request) {
-	decoder := json.NewDecoder(r.Body)
+	if r.Body == nil {
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
+	}
 
 	var hook Webhook
 
-	err := decoder.Decode(&hook)
+	err := json.NewDecoder(r.Body).Decode(&hook)
 
 	if err != nil {
-		fmt.Fprintf(w, "Error: %s", err.Error())
+		http.Error(w, http.StatusText(http.StatusBadRequest), http.StatusBadRequest)
+		return
 	}
 
-	// If minTriggerValue is not set, set to 0. If an value less then 0, set to default
-	if hook.MinTriggerValue.Type <= 0 {
-		hook.MinTriggerValue.Type = 1
-	}
+	hook.CheckTriggerValue()
 
-	fmt.Fprintf(w, "webhookURL: %s\n", hook.WebhookURL.Type)
-	fmt.Fprintf(w, "minTriggerValue: %d\n\n", hook.MinTriggerValue.Type)
+	//fmt.Fprintf(w, "webhookURL: %s\n", hook.WebhookURL)
+	//fmt.Fprintf(w, "minTriggerValue: %d\n\n", hook.MinTriggerValue)
 }
 
 func WebhookNewTrackIdGET(w http.ResponseWriter, r *http.Request) {
