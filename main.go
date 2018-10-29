@@ -13,10 +13,7 @@ import (
 )
 
 var startTime time.Time
-var tickerDB TickerDB
 var trackDB TrackDB
-
-var ticker Ticker
 
 func main() {
 	trackDB = TrackDB{
@@ -28,16 +25,6 @@ func main() {
 	}
 
 	trackDB.Init()
-
-	tickerDB = TickerDB{
-		Addrs: []string{"ds133533.mlab.com:33533"},
-		Database: "assignment-2",
-		Username: "golang",
-		Password: "golang1",
-		Collection: "tickers",
-	}
-
-	tickerDB.Init()
 
 	startTime = time.Now()
 
@@ -105,11 +92,13 @@ func TrackPOST(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
+		/* TODO: Will it work when commented???
 		if ticker.TStart == 0 {
 			ticker.TStart = time.Now().Unix()
 		}
 
 		ticker.Timestamp()
+		*/
 
 		type JSONID struct {
 			Id bson.ObjectId `json:"id"`
@@ -176,6 +165,8 @@ func SingleTrackFieldGET(w http.ResponseWriter, r *http.Request) {
 func GetTicker(w http.ResponseWriter, r *http.Request) {
 	start := time.Now().Unix()
 
+	var ticker Ticker
+
 	var all = trackDB.GetAll()
 	ticker.Tracks = make([]bson.ObjectId, 0)
 
@@ -199,6 +190,16 @@ func GetTicker(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetLatestTicker(w http.ResponseWriter, r *http.Request) {
+	if trackDB.Count() < 1 {
+		http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+		return
+	}
+
+	var ticker Ticker
+	var tracks = trackDB.GetAll()
+
+	ticker.TLatest = tracks[len(tracks) - 1].Timestamp
+
 	w.Header().Set("Content-Type", "text/plain")
 
 	json.NewEncoder(w).Encode(ticker.TLatest)
@@ -206,6 +207,8 @@ func GetLatestTicker(w http.ResponseWriter, r *http.Request) {
 
 func GetTickerFromTimestamp(w http.ResponseWriter, r *http.Request) {
 	start := time.Now().Unix()
+
+	var ticker Ticker
 
 	var params = mux.Vars(r)
 
@@ -250,7 +253,23 @@ func GetTickerFromTimestamp(w http.ResponseWriter, r *http.Request) {
 }
 
 func WebhookNewTrack(w http.ResponseWriter, r *http.Request) {
+	decoder := json.NewDecoder(r.Body)
 
+	var hook Webhook
+
+	err := decoder.Decode(&hook)
+
+	if err != nil {
+		fmt.Fprintf(w, "Error: %s", err.Error())
+	}
+
+	// If minTriggerValue is not set, set to 0. If an value less then 0, set to default
+	if hook.MinTriggerValue.Type <= 0 {
+		hook.MinTriggerValue.Type = 1
+	}
+
+	fmt.Printf( "webhookURL: %s\n", hook.WebhookURL.Type)
+	fmt.Printf( "minTriggerValue: %d\n\n", hook.MinTriggerValue.Type)
 }
 
 func WebhookNewTrackIdGET(w http.ResponseWriter, r *http.Request) {
