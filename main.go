@@ -57,6 +57,7 @@ func main() {
 	router.HandleFunc("/paragliding/api/ticker/latest", GetLatestTicker).Methods("GET")
 	router.HandleFunc("/paragliding/api/ticker/{timestamp}", GetTickerFromTimestamp).Methods("GET")
 
+	router.HandleFunc("/paragliding/api/webhook", WebhookTest)
 
 	log.Fatal(http.ListenAndServe(GetPort(), router))
 }
@@ -199,4 +200,8 @@ func GetLatestTicker(w http.ResponseWriter, r *http.Request) {
 
 func GetTickerFromTimestamp(w http.ResponseWriter, r *http.Request) {
 
+}
+
+func WebhookTest(w http.ResponseWriter, r *http.Request) {
+	fmt.Fprintf(w, "%v", r.Body)
 }
